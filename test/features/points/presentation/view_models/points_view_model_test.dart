@@ -53,6 +53,71 @@ void main() {
       expect(viewModel.state, isA<PointsFailure>());
     });
 
+    test('keeps current points visible while refreshing', () async {
+      final refreshResponse = Completer<List<PointOfInterest>>();
+      var requests = 0;
+      final viewModel = PointsViewModel(
+        _FakeRepository((_) {
+          requests++;
+          return requests == 1
+              ? Future.value([_point])
+              : refreshResponse.future;
+        }),
+      );
+      await viewModel.load(_bounds);
+
+      final refresh = viewModel.load(_otherBounds);
+
+      final refreshingState = viewModel.state as PointsLoaded;
+      expect(refreshingState.points.single, same(_point));
+      expect(refreshingState.isRefreshing, isTrue);
+
+      refreshResponse.complete([]);
+      await refresh;
+
+      final refreshedState = viewModel.state as PointsLoaded;
+      expect(refreshedState.points, isEmpty);
+      expect(refreshedState.isRefreshing, isFalse);
+    });
+
+    test('keeps current points when a viewport refresh fails', () async {
+      var requests = 0;
+      final viewModel = PointsViewModel(
+        _FakeRepository((_) async {
+          requests++;
+          if (requests == 1) {
+            return [_point];
+          }
+          throw const PointsConnectionException();
+        }),
+      );
+      await viewModel.load(_bounds);
+
+      await viewModel.load(_otherBounds);
+
+      final state = viewModel.state as PointsLoaded;
+      expect(state.points.single, same(_point));
+      expect(state.isRefreshing, isFalse);
+      expect(state.refreshFailure, PointsRefreshFailure.offline);
+    });
+
+    test('does not reload unchanged bounds', () async {
+      var requests = 0;
+      final viewModel = PointsViewModel(
+        _FakeRepository((_) async {
+          requests++;
+          return [_point];
+        }),
+      );
+
+      await viewModel.load(_bounds);
+      await viewModel.load(
+        GeographicBounds(west: 5.6, south: 44.9, east: 5.9, north: 45.2),
+      );
+
+      expect(requests, 1);
+    });
+
     test('ignores a stale response from an older request', () async {
       final firstResponse = Completer<List<PointOfInterest>>();
       final secondResponse = Completer<List<PointOfInterest>>();

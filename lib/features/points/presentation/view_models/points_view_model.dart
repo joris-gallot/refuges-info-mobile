@@ -15,25 +15,48 @@ class PointsViewModel extends ChangeNotifier {
   var _requestId = 0;
   var _isDisposed = false;
 
-  Future<void> load(GeographicBounds bounds) async {
+  Future<void> load(GeographicBounds bounds, {bool force = false}) async {
+    if (!force && bounds == _lastBounds) {
+      return;
+    }
+
     _lastBounds = bounds;
     final requestId = ++_requestId;
-    _setState(const PointsLoading());
+    final previousPoints = switch (_state) {
+      PointsLoaded(:final points) => points,
+      _ => null,
+    };
+
+    _setState(
+      previousPoints == null
+          ? const PointsLoading()
+          : PointsLoaded(points: previousPoints, isRefreshing: true),
+    );
 
     try {
       final points = await _repository.getPointsInBounds(bounds);
       if (_isCurrent(requestId)) {
         _setState(
-          points.isEmpty ? const PointsEmpty() : PointsLoaded(points: points),
+          points.isEmpty && previousPoints == null
+              ? const PointsEmpty()
+              : PointsLoaded(points: points),
         );
       }
     } on PointsConnectionException catch (_) {
       if (_isCurrent(requestId)) {
-        _setState(const PointsOffline());
+        _setLoadFailure(
+          previousPoints,
+          refreshFailure: PointsRefreshFailure.offline,
+          initialFailure: const PointsOffline(),
+        );
       }
     } on PointsDataException catch (_) {
       if (_isCurrent(requestId)) {
-        _setState(const PointsFailure());
+        _setLoadFailure(
+          previousPoints,
+          refreshFailure: PointsRefreshFailure.data,
+          initialFailure: const PointsFailure(),
+        );
       }
     }
   }
@@ -41,8 +64,23 @@ class PointsViewModel extends ChangeNotifier {
   Future<void> retry() async {
     final bounds = _lastBounds;
     if (bounds != null) {
-      await load(bounds);
+      await load(bounds, force: true);
     }
+  }
+
+  void _setLoadFailure(
+    List<PointOfInterest>? previousPoints, {
+    required PointsRefreshFailure refreshFailure,
+    required PointsState initialFailure,
+  }) {
+    _setState(
+      previousPoints == null
+          ? initialFailure
+          : PointsLoaded(
+              points: previousPoints,
+              refreshFailure: refreshFailure,
+            ),
+    );
   }
 
   bool _isCurrent(int requestId) {
@@ -78,11 +116,18 @@ class PointsLoading extends PointsState {
 }
 
 class PointsLoaded extends PointsState {
-  PointsLoaded({required List<PointOfInterest> points})
-    : points = List.unmodifiable(points);
+  PointsLoaded({
+    required List<PointOfInterest> points,
+    this.isRefreshing = false,
+    this.refreshFailure,
+  }) : points = List.unmodifiable(points);
 
   final List<PointOfInterest> points;
+  final bool isRefreshing;
+  final PointsRefreshFailure? refreshFailure;
 }
+
+enum PointsRefreshFailure { offline, data }
 
 class PointsEmpty extends PointsState {
   const PointsEmpty();

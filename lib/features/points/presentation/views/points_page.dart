@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:refuges_info_mobile/features/points/domain/models/geographic_bounds.dart';
 import 'package:refuges_info_mobile/features/points/domain/models/point_of_interest.dart';
 import 'package:refuges_info_mobile/features/points/presentation/view_models/points_view_model.dart';
 import 'package:refuges_info_mobile/features/points/presentation/views/points_map.dart';
 
-typedef PointsMapBuilder = Widget Function(List<PointOfInterest> points);
+typedef PointsMapBuilder = Widget Function(
+  List<PointOfInterest> points,
+  Future<void> Function(GeographicBounds bounds) onViewportChanged,
+);
 
 class PointsPage extends StatefulWidget {
   const PointsPage({super.key, this.mapBuilder});
@@ -39,10 +43,23 @@ class _PointsPageState extends State<PointsPage> {
         child: switch (viewModel.state) {
           PointsInitial() ||
           PointsLoading() => const Center(child: CircularProgressIndicator()),
-          PointsLoaded(:final points) =>
-            _showMap
-                ? widget.mapBuilder?.call(points) ?? PointsMap(points: points)
-                : _PointsList(points: points, onRefresh: viewModel.retry),
+          PointsLoaded(
+            :final points,
+            :final isRefreshing,
+            :final refreshFailure,
+          ) =>
+            _LoadedPoints(
+              isRefreshing: isRefreshing,
+              refreshFailure: refreshFailure,
+              onRetry: viewModel.retry,
+              child: _showMap
+                  ? widget.mapBuilder?.call(points, viewModel.load) ??
+                        PointsMap(
+                          points: points,
+                          onViewportChanged: viewModel.load,
+                        )
+                  : _PointsList(points: points, onRefresh: viewModel.retry),
+            ),
           PointsEmpty() => _MessageView(
             icon: Icons.landscape_outlined,
             title: 'Aucun point trouvé',
@@ -62,6 +79,70 @@ class _PointsPageState extends State<PointsPage> {
             onRetry: viewModel.retry,
           ),
         },
+      ),
+    );
+  }
+}
+
+class _LoadedPoints extends StatelessWidget {
+  const _LoadedPoints({
+    required this.isRefreshing,
+    required this.refreshFailure,
+    required this.onRetry,
+    required this.child,
+  });
+
+  final bool isRefreshing;
+  final PointsRefreshFailure? refreshFailure;
+  final Future<void> Function() onRetry;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned.fill(child: child),
+        if (isRefreshing)
+          const Align(
+            alignment: Alignment.topCenter,
+            child: LinearProgressIndicator(),
+          ),
+        if (refreshFailure case final failure?)
+          Align(
+            alignment: Alignment.topCenter,
+            child: _RefreshFailureBanner(failure: failure, onRetry: onRetry),
+          ),
+      ],
+    );
+  }
+}
+
+class _RefreshFailureBanner extends StatelessWidget {
+  const _RefreshFailureBanner({required this.failure, required this.onRetry});
+
+  final PointsRefreshFailure failure;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final message = switch (failure) {
+      PointsRefreshFailure.offline =>
+        'Carte hors ligne. Points précédents conservés.',
+      PointsRefreshFailure.data => 'Impossible d’actualiser les points.',
+    };
+
+    return Material(
+      color: Theme.of(context).colorScheme.errorContainer,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+            TextButton(onPressed: onRetry, child: const Text('Réessayer')),
+          ],
+        ),
       ),
     );
   }

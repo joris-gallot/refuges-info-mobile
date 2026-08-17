@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -23,6 +25,56 @@ void main() {
     expect(find.text('cabane non gardée - 1390 m - 6 places'), findsOneWidget);
     expect(
       find.text('Données Refuges.info sous licence CC BY-SA 2.0'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('keeps the map visible while refreshing', (tester) async {
+    final refreshResponse = Completer<List<PointOfInterest>>();
+    var requests = 0;
+    final viewModel = PointsViewModel(
+      _FakeRepository((_) {
+        requests++;
+        return requests == 1 ? Future.value([_point]) : refreshResponse.future;
+      }),
+    );
+    await viewModel.load(_bounds);
+    await tester.pumpWidget(_testApp(viewModel));
+
+    final refresh = viewModel.load(_otherBounds);
+    await tester.pump();
+
+    expect(find.byKey(const Key('map')), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+
+    refreshResponse.complete([_point]);
+    await refresh;
+    await tester.pump();
+
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+  });
+
+  testWidgets('shows a non-blocking error after a refresh failure', (
+    tester,
+  ) async {
+    var requests = 0;
+    final viewModel = PointsViewModel(
+      _FakeRepository((_) async {
+        requests++;
+        if (requests == 1) {
+          return [_point];
+        }
+        throw const PointsConnectionException();
+      }),
+    );
+    await viewModel.load(_bounds);
+    await viewModel.load(_otherBounds);
+
+    await tester.pumpWidget(_testApp(viewModel));
+
+    expect(find.byKey(const Key('map')), findsOneWidget);
+    expect(
+      find.text('Carte hors ligne. Points précédents conservés.'),
       findsOneWidget,
     );
   });
@@ -64,7 +116,7 @@ Widget _testApp(PointsViewModel viewModel) {
   return ChangeNotifierProvider.value(
     value: viewModel,
     child: MaterialApp(
-      home: PointsPage(mapBuilder: (_) => const SizedBox(key: Key('map'))),
+      home: PointsPage(mapBuilder: (_, _) => const SizedBox(key: Key('map'))),
     ),
   );
 }
@@ -75,6 +127,8 @@ final _bounds = GeographicBounds(
   east: 5.9,
   north: 45.2,
 );
+
+final _otherBounds = GeographicBounds(west: 6, south: 45, east: 7, north: 46);
 
 final _point = PointOfInterest(
   id: 2240,

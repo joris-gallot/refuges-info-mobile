@@ -1,6 +1,6 @@
 import 'package:refuges_info_mobile/features/points/domain/models/point_of_interest.dart';
 
-Map<String, Object?> pointsToGeoJson(List<PointOfInterest> points) {
+Map<String, dynamic> pointsToGeoJson(List<PointOfInterest> points) {
   return {
     'type': 'FeatureCollection',
     'features': [

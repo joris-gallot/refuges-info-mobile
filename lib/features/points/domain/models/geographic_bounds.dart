@@ -19,4 +19,16 @@ class GeographicBounds {
   final double north;
 
   String toApiValue() => '$west,$south,$east,$north';
+
+  @override
+  bool operator ==(Object other) {
+    return other is GeographicBounds &&
+        other.west == west &&
+        other.south == south &&
+        other.east == east &&
+        other.north == north;
+  }
+
+  @override
+  int get hashCode => Object.hash(west, south, east, north);
 }

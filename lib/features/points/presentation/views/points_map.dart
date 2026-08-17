@@ -1,14 +1,23 @@
+import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:refuges_info_mobile/features/points/domain/models/geographic_bounds.dart';
 import 'package:refuges_info_mobile/features/points/domain/models/point_of_interest.dart';
+import 'package:refuges_info_mobile/features/points/presentation/maps/map_bounds.dart';
 import 'package:refuges_info_mobile/features/points/presentation/maps/points_geojson.dart';
 
 class PointsMap extends StatefulWidget {
-  const PointsMap({super.key, required this.points});
+  const PointsMap({
+    super.key,
+    required this.points,
+    required this.onViewportChanged,
+  });
 
   final List<PointOfInterest> points;
+  final Future<void> Function(GeographicBounds bounds) onViewportChanged;
 
   @override
   State<PointsMap> createState() => _PointsMapState();
@@ -24,6 +33,15 @@ class _PointsMapState extends State<PointsMap> {
   );
 
   MapLibreMapController? _controller;
+  var _isStyleLoaded = false;
+
+  @override
+  void didUpdateWidget(PointsMap oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_isStyleLoaded && !listEquals(oldWidget.points, widget.points)) {
+      unawaited(_updatePoints());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +52,7 @@ class _PointsMapState extends State<PointsMap> {
           initialCameraPosition: _initialCamera,
           onMapCreated: _onMapCreated,
           onStyleLoadedCallback: _onStyleLoaded,
+          onCameraIdle: _onCameraIdle,
           compassEnabled: true,
           rotateGesturesEnabled: false,
         ),
@@ -75,6 +94,33 @@ class _PointsMapState extends State<PointsMap> {
         circleStrokeWidth: 2,
       ),
     );
+    _isStyleLoaded = true;
+    await _notifyVisibleBounds();
+  }
+
+  Future<void> _onCameraIdle() => _notifyVisibleBounds();
+
+  Future<void> _notifyVisibleBounds() async {
+    final controller = _controller;
+    if (controller == null) {
+      return;
+    }
+
+    final mapBounds = await controller.getVisibleRegion();
+    final bounds = geographicBoundsFromMap(mapBounds);
+    if (bounds != null) {
+      await widget.onViewportChanged(bounds);
+    }
+  }
+
+  Future<void> _updatePoints() async {
+    final controller = _controller;
+    if (controller != null) {
+      await controller.setGeoJsonSource(
+        _sourceId,
+        pointsToGeoJson(widget.points),
+      );
+    }
   }
 
   void _onFeatureTapped(
