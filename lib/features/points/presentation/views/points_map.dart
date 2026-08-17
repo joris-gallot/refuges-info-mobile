@@ -7,7 +7,9 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:refuges_info_mobile/features/points/domain/models/geographic_bounds.dart';
 import 'package:refuges_info_mobile/features/points/domain/models/point_of_interest.dart';
 import 'package:refuges_info_mobile/features/points/presentation/maps/map_bounds.dart';
-import 'package:refuges_info_mobile/features/points/presentation/maps/points_geojson.dart';
+import 'package:refuges_info_mobile/features/points/presentation/maps/points_clusterer.dart';
+import 'package:refuges_info_mobile/features/points/presentation/maps/points_map_style.dart';
+import 'package:refuges_info_mobile/features/points/presentation/maps/rendered_map_feature.dart';
 
 class PointsMap extends StatefulWidget {
   const PointsMap({
@@ -24,22 +26,36 @@ class PointsMap extends StatefulWidget {
 }
 
 class _PointsMapState extends State<PointsMap> {
-  static const _sourceId = 'refuges-info-points';
-  static const _layerId = 'refuges-info-points-layer';
   static const _styleUrl = 'https://tiles.openfreemap.org/styles/liberty';
   static const _initialCamera = CameraPosition(
     target: LatLng(45.15, 5.85),
     zoom: 9,
   );
+  static final _worldBounds = GeographicBounds(
+    west: -180,
+    south: -90,
+    east: 180,
+    north: 90,
+  );
 
   MapLibreMapController? _controller;
+  late PointsClusterer _clusterer;
   var _isStyleLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _clusterer = PointsClusterer(widget.points);
+  }
 
   @override
   void didUpdateWidget(PointsMap oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (_isStyleLoaded && !listEquals(oldWidget.points, widget.points)) {
-      unawaited(_updatePoints());
+    if (!listEquals(oldWidget.points, widget.points)) {
+      _clusterer = PointsClusterer(widget.points);
+      if (_isStyleLoaded) {
+        unawaited(_updateClusters());
+      }
     }
   }
 
@@ -50,9 +66,10 @@ class _PointsMapState extends State<PointsMap> {
         MapLibreMap(
           styleString: _styleUrl,
           initialCameraPosition: _initialCamera,
-          onMapCreated: _onMapCreated,
+          onMapCreated: (controller) => _controller = controller,
           onStyleLoadedCallback: _onStyleLoaded,
-          onCameraIdle: _onCameraIdle,
+          onCameraIdle: _notifyVisibleBounds,
+          onMapClick: _onMapClick,
           compassEnabled: true,
           rotateGesturesEnabled: false,
         ),
@@ -66,76 +83,116 @@ class _PointsMapState extends State<PointsMap> {
     );
   }
 
-  void _onMapCreated(MapLibreMapController controller) {
-    _controller = controller;
-    controller.onFeatureTapped.add(_onFeatureTapped);
-  }
-
   Future<void> _onStyleLoaded() async {
     final controller = _controller;
     if (controller == null) {
       return;
     }
 
-    await controller.addSource(
-      _sourceId,
-      GeojsonSourceProperties(
-        data: pointsToGeoJson(widget.points),
-        attribution: 'Données Refuges.info - CC BY-SA 2.0',
-      ),
+    final initialGeoJson = _clusterer.geoJson(
+      _worldBounds,
+      _initialCamera.zoom,
+    );
+    await controller.addSource(pointsSourceId, pointsSource(initialGeoJson));
+    await controller.addCircleLayer(
+      pointsSourceId,
+      clusterLayerId,
+      clusterCircleStyle,
+      filter: clusterFilter,
     );
     await controller.addCircleLayer(
-      _sourceId,
-      _layerId,
-      const CircleLayerProperties(
-        circleRadius: 7,
-        circleColor: '#315C4C',
-        circleStrokeColor: '#FFFFFF',
-        circleStrokeWidth: 2,
-      ),
+      pointsSourceId,
+      pointLayerId,
+      individualPointStyle,
+      filter: individualPointFilter,
+    );
+    await controller.addSymbolLayer(
+      pointsSourceId,
+      clusterCountLayerId,
+      clusterCountStyle,
+      filter: clusterFilter,
+      enableInteraction: false,
     );
     _isStyleLoaded = true;
     await _notifyVisibleBounds();
   }
 
-  Future<void> _onCameraIdle() => _notifyVisibleBounds();
-
   Future<void> _notifyVisibleBounds() async {
     final controller = _controller;
-    if (controller == null) {
+    if (controller == null || !_isStyleLoaded) {
       return;
     }
 
     final mapBounds = await controller.getVisibleRegion();
     final bounds = geographicBoundsFromMap(mapBounds);
-    if (bounds != null) {
-      await widget.onViewportChanged(bounds);
-    }
-  }
-
-  Future<void> _updatePoints() async {
-    final controller = _controller;
-    if (controller != null) {
-      await controller.setGeoJsonSource(
-        _sourceId,
-        pointsToGeoJson(widget.points),
-      );
-    }
-  }
-
-  void _onFeatureTapped(
-    Point<double> _,
-    LatLng _,
-    String id,
-    String layerId,
-    Annotation? _,
-  ) {
-    if (!mounted || layerId != _layerId) {
+    if (bounds == null) {
       return;
     }
 
+    await _updateClusters(bounds: bounds);
+    await widget.onViewportChanged(bounds);
+  }
+
+  Future<void> _updateClusters({GeographicBounds? bounds}) async {
+    final controller = _controller;
+    if (controller == null) {
+      return;
+    }
+
+    final visibleBounds =
+        bounds ?? geographicBoundsFromMap(await controller.getVisibleRegion());
+    if (visibleBounds == null) {
+      return;
+    }
+
+    final zoom = controller.cameraPosition?.zoom ?? _initialCamera.zoom;
+    final geoJson = _clusterer.geoJson(visibleBounds, zoom);
+    await controller.setGeoJsonSource(pointsSourceId, geoJson);
+  }
+
+  Future<void> _onMapClick(Point<double> position, LatLng coordinates) async {
+    final controller = _controller;
+    if (controller == null) {
+      return;
+    }
+
+    final features = await controller.queryRenderedFeatures(position, [
+      clusterLayerId,
+      pointLayerId,
+    ], null);
+    final feature = RenderedMapFeature.fromJson(
+      features.isEmpty ? null : features.first,
+    );
+
+    switch (feature) {
+      case RenderedCluster(:final id):
+        await _zoomIntoCluster(id, coordinates);
+      case RenderedPoint(:final id):
+        _showPoint(id);
+      case UnsupportedMapFeature():
+        break;
+    }
+  }
+
+  Future<void> _zoomIntoCluster(int id, LatLng coordinates) async {
+    final controller = _controller;
+    if (controller == null) {
+      return;
+    }
+
+    final currentZoom = controller.cameraPosition?.zoom ?? _initialCamera.zoom;
+    final expansionZoom = _clusterer.expansionZoom(id);
+    await controller.animateCamera(
+      CameraUpdate.newLatLngZoom(
+        coordinates,
+        min(max(expansionZoom, currentZoom + 1), 16),
+      ),
+    );
+  }
+
+  void _showPoint(int id) {
     final point = _findPoint(id);
-    if (point == null) {
+    if (!mounted || point == null) {
       return;
     }
 
@@ -146,19 +203,13 @@ class _PointsMapState extends State<PointsMap> {
     );
   }
 
-  PointOfInterest? _findPoint(String id) {
+  PointOfInterest? _findPoint(int id) {
     for (final point in widget.points) {
-      if (point.id.toString() == id) {
+      if (point.id == id) {
         return point;
       }
     }
     return null;
-  }
-
-  @override
-  void dispose() {
-    _controller?.onFeatureTapped.remove(_onFeatureTapped);
-    super.dispose();
   }
 }
 
