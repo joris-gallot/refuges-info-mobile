@@ -1,0 +1,59 @@
+{
+  "type": "FeatureCollection",
+  "generator": "Refuges.info API",
+  "copyright": "The data included in this document is from www.refuges.info. The data is made available under CC By-Sa 2.0",
+  "timestamp": "2026-08-17T17:36:28+02:00",
+  "size": 2,
+  "features": [
+    {
+      "type": "Feature",
+      "id": 2240,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [5.82853, 45.08439]
+      },
+      "properties": {
+        "nom": "Baraque Pagnot",
+        "type": {
+          "id": 7,
+          "valeur": "cabane non gardée",
+          "icone": "cabane"
+        },
+        "id": 2240,
+        "coord": {"alt": 1390},
+        "sym": "Fishing Hot Spot Facility",
+        "etat": {"valeur": ""},
+        "places": {
+          "nom": "Places prévues pour dormir",
+          "valeur": 6
+        },
+        "lien": "https://www.refuges.info/point/2240/cabane-non-gardee/baraque-Pagnot/"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 9392,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [5.50891, 45.21639]
+      },
+      "properties": {
+        "nom": "Cabane privée de Brondelière",
+        "type": {
+          "id": 7,
+          "valeur": "cabane non gardée",
+          "icone": "cabane_a48_x"
+        },
+        "id": 9392,
+        "coord": {"alt": 480},
+        "sym": "Crossing",
+        "etat": {"valeur": "Fermée"},
+        "places": {
+          "nom": "Places prévues pour dormir",
+          "valeur": null
+        },
+        "lien": "https://www.refuges.info/point/9392/cabane-non-gardee/cabane-privee-de-Brondeliere/"
+      }
+    }
+  ]
+}
