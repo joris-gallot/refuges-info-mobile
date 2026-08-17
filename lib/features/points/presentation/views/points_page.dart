@@ -2,24 +2,47 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:refuges_info_mobile/features/points/domain/models/point_of_interest.dart';
 import 'package:refuges_info_mobile/features/points/presentation/view_models/points_view_model.dart';
+import 'package:refuges_info_mobile/features/points/presentation/views/points_map.dart';
 
-class PointsPage extends StatelessWidget {
-  const PointsPage({super.key});
+typedef PointsMapBuilder = Widget Function(List<PointOfInterest> points);
+
+class PointsPage extends StatefulWidget {
+  const PointsPage({super.key, this.mapBuilder});
+
+  final PointsMapBuilder? mapBuilder;
+
+  @override
+  State<PointsPage> createState() => _PointsPageState();
+}
+
+class _PointsPageState extends State<PointsPage> {
+  var _showMap = true;
 
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<PointsViewModel>();
+    final hasPoints = viewModel.state is PointsLoaded;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Refuges Info Mobile')),
+      appBar: AppBar(
+        title: const Text('Refuges Info Mobile'),
+        actions: [
+          if (hasPoints)
+            IconButton(
+              tooltip: _showMap ? 'Afficher la liste' : 'Afficher la carte',
+              onPressed: () => setState(() => _showMap = !_showMap),
+              icon: Icon(_showMap ? Icons.list : Icons.map_outlined),
+            ),
+        ],
+      ),
       body: SafeArea(
         child: switch (viewModel.state) {
           PointsInitial() ||
           PointsLoading() => const Center(child: CircularProgressIndicator()),
-          PointsLoaded(:final points) => _PointsList(
-            points: points,
-            onRefresh: viewModel.retry,
-          ),
+          PointsLoaded(:final points) =>
+            _showMap
+                ? widget.mapBuilder?.call(points) ?? PointsMap(points: points)
+                : _PointsList(points: points, onRefresh: viewModel.retry),
           PointsEmpty() => _MessageView(
             icon: Icons.landscape_outlined,
             title: 'Aucun point trouvé',

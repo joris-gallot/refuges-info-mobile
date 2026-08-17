@@ -14,6 +14,11 @@ void main() {
 
     await tester.pumpWidget(_testApp(viewModel));
 
+    expect(find.byKey(const Key('map')), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Afficher la liste'));
+    await tester.pump();
+
     expect(find.text('Baraque Pagnot'), findsOneWidget);
     expect(find.text('cabane non gardée - 1390 m - 6 places'), findsOneWidget);
     expect(
@@ -51,14 +56,16 @@ void main() {
     await tester.pump();
 
     expect(requests, 2);
-    expect(find.text('Baraque Pagnot'), findsOneWidget);
+    expect(find.byKey(const Key('map')), findsOneWidget);
   });
 }
 
 Widget _testApp(PointsViewModel viewModel) {
   return ChangeNotifierProvider.value(
     value: viewModel,
-    child: const MaterialApp(home: PointsPage()),
+    child: MaterialApp(
+      home: PointsPage(mapBuilder: (_) => const SizedBox(key: Key('map'))),
+    ),
   );
 }
 

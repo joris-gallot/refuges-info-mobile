@@ -18,7 +18,7 @@ Le projet est en cours de création. La première version prévoit notamment :
 - une consultation hors ligne ;
 - des liens vers Refuges.info pour contribuer.
 
-Aucune solution cartographique n'est encore intégrée. Le choix sera fait après comparaison des fonctionnalités, des licences, de l'attribution requise et du support hors ligne. Les serveurs de tuiles OpenStreetMap standards ne seront pas utilisés pour du téléchargement massif.
+La carte utilise le moteur open source MapLibre. Le prototype en ligne charge le style Liberty d'OpenFreeMap et affiche séparément l'attribution des données Refuges.info. La solution de téléchargement hors ligne reste à définir et n'utilisera pas les serveurs de tuiles OpenStreetMap standards.
 
 ## Prérequis
 

@@ -62,9 +62,11 @@ Model loading, error, empty, and offline states explicitly where applicable. Add
 
 ## Maps and offline support
 
-Do not add a mapping solution before comparing current options, licensing, attribution requirements, Android and iOS support, and offline capabilities.
+Use `maplibre_gl` as the map renderer. It is permissively licensed, provider-independent, compatible with iOS and Android, and supports bounded offline regions.
 
-Verify tile-provider terms before implementing offline downloads. Never use standard OpenStreetMap tile servers for bulk downloading.
+The online prototype uses OpenFreeMap's Liberty style with the provider attribution kept visible. The renderer and tile provider remain separate concerns. Verify licensing, attribution, pricing, caching, and offline terms before adding downloads or changing endpoints. Never use standard OpenStreetMap tile servers for bulk downloading or offline regions.
+
+Do not add `flutter_map_tile_caching` without a license review because it is GPL-3.0 and may conflict with this application's MIT distribution goal.
 
 ## Licensing and attribution
 
