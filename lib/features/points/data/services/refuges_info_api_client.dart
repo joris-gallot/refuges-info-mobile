@@ -4,13 +4,25 @@ import 'package:http/http.dart' as http;
 import 'package:refuges_info_mobile/features/points/data/models/bbox_response.dart';
 import 'package:refuges_info_mobile/features/points/domain/models/geographic_bounds.dart';
 
-class RefugesInfoApiClient {
-  RefugesInfoApiClient(this._httpClient, {Uri? baseUri})
-    : baseUri = baseUri ?? Uri.https('www.refuges.info', '/api/');
+abstract interface class RefugesInfoApi {
+  Future<BboxResponse> fetchPointsInBounds({
+    required GeographicBounds bounds,
+    int limit = 250,
+  });
+}
+
+class RefugesInfoApiClient implements RefugesInfoApi {
+  RefugesInfoApiClient(
+    this._httpClient, {
+    Uri? baseUri,
+    this.requestTimeout = const Duration(seconds: 15),
+  }) : baseUri = baseUri ?? Uri.https('www.refuges.info', '/api/');
 
   final http.Client _httpClient;
   final Uri baseUri;
+  final Duration requestTimeout;
 
+  @override
   Future<BboxResponse> fetchPointsInBounds({
     required GeographicBounds bounds,
     int limit = 250,
@@ -30,10 +42,9 @@ class RefugesInfoApiClient {
             'format_texte': 'texte',
           },
         );
-    final response = await _httpClient.get(
-      uri,
-      headers: const {'Accept': 'application/json'},
-    );
+    final response = await _httpClient
+        .get(uri, headers: const {'Accept': 'application/json'})
+        .timeout(requestTimeout);
 
     if (response.statusCode != 200) {
       throw RefugesInfoApiException(statusCode: response.statusCode);

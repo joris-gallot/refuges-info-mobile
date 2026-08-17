@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -75,6 +76,17 @@ void main() {
       final future = client.fetchPointsInBounds(bounds: _bounds());
 
       await expectLater(future, throwsA(isA<FormatException>()));
+    });
+
+    test('times out stalled requests', () async {
+      final client = RefugesInfoApiClient(
+        MockClient((_) => Completer<http.Response>().future),
+        requestTimeout: Duration.zero,
+      );
+
+      final future = client.fetchPointsInBounds(bounds: _bounds());
+
+      await expectLater(future, throwsA(isA<TimeoutException>()));
     });
 
     test('rejects limits above the API-safe maximum', () async {

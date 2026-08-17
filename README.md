@@ -43,18 +43,20 @@ flutter run -d <device-id>
 
 ## Structure
 
-Le code suit une organisation feature-first minimale :
+Le code suit une organisation feature-first avec des couches séparées :
 
 ```text
 lib/
-├── app/                         # Configuration globale de l'application
+├── app/                         # Configuration et injection des dépendances
 ├── features/
-│   └── home/
-│       └── presentation/        # Écran d'accueil
+│   └── points/
+│       ├── data/                # Modèles API, service HTTP et repository distant
+│       ├── domain/              # Modèles métier et contrat du repository
+│       └── presentation/        # Vue et ViewModel
 └── main.dart                    # Point d'entrée
 ```
 
-Les couches de données et de domaine seront ajoutées à chaque fonctionnalité lorsqu'elles deviendront nécessaires. Les modèles seront créés à partir de réponses réelles de l'[API Refuges.info](https://www.refuges.info/api/doc/).
+Les modèles API sont créés à partir de réponses réelles de l'[API Refuges.info](https://www.refuges.info/api/doc/). L'interface utilise un flux unidirectionnel et expose explicitement les états de chargement, données, vide, erreur et hors ligne.
 
 ## Vérifications
 
