@@ -1,8 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:refuges_info_mobile/features/points/domain/models/geographic_bounds.dart';
 import 'package:refuges_info_mobile/features/points/domain/models/point_of_interest.dart';
+import 'package:refuges_info_mobile/features/points/domain/repositories/points_repository.dart';
+import 'package:refuges_info_mobile/features/points/presentation/view_models/point_details_view_model.dart';
 import 'package:refuges_info_mobile/features/points/presentation/view_models/points_view_model.dart';
+import 'package:refuges_info_mobile/features/points/presentation/views/point_details_page.dart';
 import 'package:refuges_info_mobile/features/points/presentation/views/points_map.dart';
 import 'package:refuges_info_mobile/features/points/presentation/widgets/point_type_filter_sheet.dart';
 
@@ -71,8 +76,13 @@ class _PointsPageState extends State<PointsPage> {
                         PointsMap(
                           points: points,
                           onViewportChanged: viewModel.load,
+                          onPointSelected: _openPointDetails,
                         )
-                  : _PointsList(points: points, onRefresh: viewModel.retry),
+                  : _PointsList(
+                      points: points,
+                      onRefresh: viewModel.retry,
+                      onPointSelected: _openPointDetails,
+                    ),
             ),
           PointsEmpty() => _MessageView(
             icon: Icons.landscape_outlined,
@@ -93,6 +103,24 @@ class _PointsPageState extends State<PointsPage> {
             onRetry: viewModel.retry,
           ),
         },
+      ),
+    );
+  }
+
+  void _openPointDetails(PointOfInterest point) {
+    final repository = context.read<PointsRepository>();
+    unawaited(
+      Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => ChangeNotifierProvider(
+            create: (_) {
+              final viewModel = PointDetailsViewModel(repository, point.id);
+              unawaited(viewModel.load());
+              return viewModel;
+            },
+            child: PointDetailsPage(summary: point),
+          ),
+        ),
       ),
     );
   }
@@ -184,10 +212,15 @@ class _RefreshFailureBanner extends StatelessWidget {
 }
 
 class _PointsList extends StatelessWidget {
-  const _PointsList({required this.points, required this.onRefresh});
+  const _PointsList({
+    required this.points,
+    required this.onRefresh,
+    required this.onPointSelected,
+  });
 
   final List<PointOfInterest> points;
   final Future<void> Function() onRefresh;
+  final ValueChanged<PointOfInterest> onPointSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -211,6 +244,7 @@ class _PointsList extends StatelessWidget {
 
           final point = points[index];
           return ListTile(
+            onTap: () => onPointSelected(point),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 8,
               vertical: 4,

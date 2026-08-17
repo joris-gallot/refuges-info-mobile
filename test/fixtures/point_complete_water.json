@@ -1,0 +1,77 @@
+{
+  "type": "FeatureCollection",
+  "generator": "Refuges.info API",
+  "copyright": "The data included in this document is from www.refuges.info. The data is made available under CC By-Sa 2.0",
+  "timestamp": "2026-08-17T19:21:28+02:00",
+  "size": 1,
+  "features": [
+    {
+      "type": "Feature",
+      "id": 9438,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          6.39474,
+          44.6669
+        ]
+      },
+      "properties": {
+        "nom": "Fontaine du Saut du Laire",
+        "type": {
+          "id": 23,
+          "valeur": "point d'eau",
+          "icone": "pointdeau"
+        },
+        "id": 9438,
+        "coord": {
+          "alt": 1884,
+          "long": 6.39474,
+          "lat": 44.6669,
+          "precision": {
+            "nom": "Coordonnées prises sur le terrain",
+            "type": 1
+          }
+        },
+        "sym": "Drinking Water",
+        "etat": {
+          "nom": "Etat",
+          "valeur": "",
+          "id": "ouverture"
+        },
+        "places": {
+          "nom": "",
+          "valeur": 0
+        },
+        "lien": "https://www.refuges.info/point/9438/point-d-eau/fontaine-du-Saut-du-Laire/",
+        "date": {
+          "creation": "2023-10-23 21:18:04.703839+02",
+          "derniere_modif": "2023-10-23 21:18:04.703839+02"
+        },
+        "createur": {
+          "id": 3451,
+          "nom": "sucreroux23"
+        },
+        "proprio": {
+          "nom": "",
+          "valeur": null
+        },
+        "acces": {
+          "nom": "Accès",
+          "valeur": "Fontaine située au carrefour de sentiers, non loin du pont qui permet de franchir la cascade du Saut du Laire."
+        },
+        "remarque": {
+          "nom": "Remarque",
+          "valeur": ""
+        },
+        "description": {
+          "valeur": "\nFontaine située au carrefour de sentiers, non loin du pont qui permet de franchir la cascade du Saut du Laire.\n\n"
+        },
+        "article": {
+          "demonstratif": "ce",
+          "defini": "le",
+          "partitif": "d'un"
+        }
+      }
+    }
+  ]
+}

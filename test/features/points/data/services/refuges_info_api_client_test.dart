@@ -124,6 +124,50 @@ void main() {
       expect(requested, isFalse);
     });
   });
+
+  group('RefugesInfoApiClient.fetchPointDetails', () {
+    test('requests and parses complete point details', () async {
+      final fixture = await File('test/fixtures/point_complete_cabin.json')
+          .readAsString();
+      late http.Request capturedRequest;
+      final client = RefugesInfoApiClient(
+        MockClient((request) async {
+          capturedRequest = request;
+          return http.Response(
+            fixture,
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        }),
+      );
+
+      final response = await client.fetchPointDetails(6041);
+
+      expect(capturedRequest.method, 'GET');
+      expect(capturedRequest.url.path, '/api/point');
+      expect(capturedRequest.url.queryParameters, {
+        'id': '6041',
+        'detail': 'complet',
+        'format': 'geojson',
+        'format_texte': 'texte',
+      });
+      expect(response.point.name, 'Abri de la chapelle de N.D. de Trédos');
+    });
+
+    test('rejects a non-positive point id without a request', () async {
+      var requested = false;
+      final client = RefugesInfoApiClient(
+        MockClient((_) async {
+          requested = true;
+          return http.Response('{}', 200);
+        }),
+      );
+
+      await expectLater(client.fetchPointDetails(0), throwsRangeError);
+
+      expect(requested, isFalse);
+    });
+  });
 }
 
 GeographicBounds _bounds() {

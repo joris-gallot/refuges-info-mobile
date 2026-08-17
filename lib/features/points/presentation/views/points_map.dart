@@ -16,10 +16,12 @@ class PointsMap extends StatefulWidget {
     super.key,
     required this.points,
     required this.onViewportChanged,
+    required this.onPointSelected,
   });
 
   final List<PointOfInterest> points;
   final Future<void> Function(GeographicBounds bounds) onViewportChanged;
+  final ValueChanged<PointOfInterest> onPointSelected;
 
   @override
   State<PointsMap> createState() => _PointsMapState();
@@ -199,7 +201,10 @@ class _PointsMapState extends State<PointsMap> {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (context) => _PointPreview(point: point),
+      builder: (context) => _PointPreview(
+        point: point,
+        onOpenDetails: () => widget.onPointSelected(point),
+      ),
     );
   }
 
@@ -214,9 +219,10 @@ class _PointsMapState extends State<PointsMap> {
 }
 
 class _PointPreview extends StatelessWidget {
-  const _PointPreview({required this.point});
+  const _PointPreview({required this.point, required this.onOpenDetails});
 
   final PointOfInterest point;
+  final VoidCallback onOpenDetails;
 
   @override
   Widget build(BuildContext context) {
@@ -231,6 +237,17 @@ class _PointPreview extends StatelessWidget {
             const SizedBox(height: 8),
             Text(point.type.name),
             if (point.altitude case final altitude?) Text('$altitude m'),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  onOpenDetails();
+                },
+                child: const Text('Voir la fiche'),
+              ),
+            ),
           ],
         ),
       ),

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:refuges_info_mobile/features/points/domain/models/geographic_bounds.dart';
+import 'package:refuges_info_mobile/features/points/domain/models/point_details.dart';
 import 'package:refuges_info_mobile/features/points/domain/models/point_of_interest.dart';
 import 'package:refuges_info_mobile/features/points/domain/repositories/points_repository.dart';
 import 'package:refuges_info_mobile/features/points/presentation/view_models/points_view_model.dart';
@@ -256,6 +257,11 @@ class _FakeRepository implements PointsRepository {
 
   final Future<List<PointOfInterest>> Function(GeographicBounds) _getPoints;
   final void Function(Set<int>)? onTypeIds;
+
+  @override
+  Future<PointDetails> getPointDetails(int id) {
+    throw UnimplementedError();
+  }
 
   @override
   Future<List<PointOfInterest>> getPointsInBounds(

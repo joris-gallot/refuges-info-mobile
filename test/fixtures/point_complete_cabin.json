@@ -1,0 +1,117 @@
+{
+  "type": "FeatureCollection",
+  "generator": "Refuges.info API",
+  "copyright": "The data included in this document is from www.refuges.info. The data is made available under CC By-Sa 2.0",
+  "timestamp": "2026-08-17T19:21:28+02:00",
+  "size": 1,
+  "features": [
+    {
+      "type": "Feature",
+      "id": 6041,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          2.8497,
+          43.5076
+        ]
+      },
+      "properties": {
+        "nom": "Abri de la chapelle de N.D. de Trédos",
+        "type": {
+          "id": 7,
+          "valeur": "cabane non gardée",
+          "icone": "cabane_manqueunmur_a48_feu_cle"
+        },
+        "id": 6041,
+        "coord": {
+          "alt": 590,
+          "long": 2.8497,
+          "lat": 43.5076,
+          "precision": {
+            "nom": "Coordonnées pointées sur photos aériennes",
+            "type": 7
+          }
+        },
+        "sym": "Fishing Hot Spot Facility",
+        "etat": {
+          "nom": "Etat",
+          "valeur": "Clés à récupérer",
+          "id": "cle_a_recuperer"
+        },
+        "places": {
+          "nom": "Places prévues pour dormir",
+          "valeur": 0
+        },
+        "lien": "https://www.refuges.info/point/6041/cabane-non-gardee/abri-de-la-chapelle-de-ND-de-Tredos/",
+        "date": {
+          "creation": "2017-12-29 23:31:27.315468+01",
+          "derniere_modif": "2025-01-25 19:12:31.251066+01"
+        },
+        "createur": {
+          "id": 0,
+          "nom": "Lauze"
+        },
+        "proprio": {
+          "nom": "Auprès de qui se renseigner / accessibilité",
+          "valeur": ""
+        },
+        "acces": {
+          "nom": "Accès",
+          "valeur": "GR 77 ou D176E1 ou D176E2\r\nDans l' Hérault au sud-est du col du Poirier, sur la commune de St-Etienne-d' Albagnan"
+        },
+        "remarque": {
+          "nom": "Remarque",
+          "valeur": ""
+        },
+        "info_comp": {
+          "bois": {
+            "nom": "Forêt à moins de 100m",
+            "valeur": "*Inconnu*"
+          },
+          "cheminee": {
+            "nom": "Cheminée",
+            "valeur": "Oui"
+          },
+          "couvertures": {
+            "nom": "Couvertures",
+            "valeur": "Non"
+          },
+          "eau": {
+            "nom": "Eau à moins de 100m",
+            "valeur": "*Inconnu*"
+          },
+          "latrines": {
+            "nom": "Latrines",
+            "valeur": "Non"
+          },
+          "manque_un_mur": {
+            "nom": "Manque un mur",
+            "valeur": "Oui"
+          },
+          "places": {
+            "nom": "Places prévues pour dormir",
+            "nb": 0,
+            "valeur": 0
+          },
+          "places_matelas": {
+            "nom": "Places sur Matelas",
+            "nb": 0,
+            "valeur": 0
+          },
+          "poele": {
+            "nom": "Poêle",
+            "valeur": "Non"
+          }
+        },
+        "description": {
+          "valeur": "\nGR 77 ou D176E1 ou D176E2\r\nDans l' Hérault au sud-est du col du Poirier, sur la commune de St-Etienne-d' Albagnan\n\n"
+        },
+        "article": {
+          "demonstratif": "cette",
+          "defini": "la",
+          "partitif": "d'une"
+        }
+      }
+    }
+  ]
+}

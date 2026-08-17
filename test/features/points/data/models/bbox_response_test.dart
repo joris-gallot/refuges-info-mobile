@@ -41,6 +41,23 @@ void main() {
       expect(response.points.last.state, 'Fermée');
     });
 
+    test(
+      'ignores sleeping places when the type has no capacity field',
+      () async {
+        final json = await _loadFixture();
+        final feature =
+            (json['features'] as List<Object?>).first as Map<String, Object?>;
+        final properties = feature['properties'] as Map<String, Object?>;
+        final places = properties['places'] as Map<String, Object?>;
+        places['nom'] = '';
+        places['valeur'] = 0;
+
+        final response = BboxResponse.fromJson(json);
+
+        expect(response.points.first.sleepingPlaces, isNull);
+      },
+    );
+
     test('rejects a feature count inconsistent with size', () async {
       final json = await _loadFixture();
       json['size'] = 3;

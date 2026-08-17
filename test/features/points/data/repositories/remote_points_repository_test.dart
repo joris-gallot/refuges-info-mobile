@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:refuges_info_mobile/features/points/data/models/bbox_response.dart';
+import 'package:refuges_info_mobile/features/points/data/models/point_details_response.dart';
+import 'package:refuges_info_mobile/features/points/domain/models/point_details.dart';
 import 'package:refuges_info_mobile/features/points/data/repositories/remote_points_repository.dart';
 import 'package:refuges_info_mobile/features/points/data/services/refuges_info_api_client.dart';
 import 'package:refuges_info_mobile/features/points/domain/models/geographic_bounds.dart';
@@ -13,7 +15,7 @@ import 'package:refuges_info_mobile/features/points/domain/repositories/points_r
 void main() {
   group('RemotePointsRepository', () {
     test('maps API points to immutable domain models', () async {
-      final api = _FakeApi(response: await _loadFixture());
+      final api = _FakeApi(response: await _loadBboxFixture());
       final repository = RemotePointsRepository(api);
 
       final points = await repository.getPointsInBounds(_bounds);
@@ -29,12 +31,40 @@ void main() {
     });
 
     test('forwards selected point types to the API', () async {
-      final api = _FakeApi(response: await _loadFixture());
+      final api = _FakeApi(response: await _loadBboxFixture());
       final repository = RemotePointsRepository(api);
 
       await repository.getPointsInBounds(_bounds, typeIds: {7, 10});
 
       expect(api.requestedTypeIds, {7, 10});
+    });
+
+    test('maps complete API details to the domain model', () async {
+      final api = _FakeApi(detailsResponse: await _loadDetailsFixture());
+      final repository = RemotePointsRepository(api);
+
+      final details = await repository.getPointDetails(6041);
+
+      expect(details.point.id, 6041);
+      expect(details.point.type.name, 'cabane non gardée');
+      expect(details.coordinatePrecision, contains('photos aériennes'));
+      expect(details.access, contains('GR 77'));
+      expect(
+        details.information.any((item) => item.label == 'Cheminée'),
+        isTrue,
+      );
+      expect(
+        details.information.any(
+          (item) => item.label == 'Places prévues pour dormir',
+        ),
+        isFalse,
+      );
+      expect(
+        () => details.information.add(
+          const PointDetailInformation(label: 'Test', value: 'Oui'),
+        ),
+        throwsUnsupportedError,
+      );
     });
 
     test('maps client failures to a connection exception', () async {
@@ -80,9 +110,10 @@ final _bounds = GeographicBounds(
 );
 
 class _FakeApi implements RefugesInfoApi {
-  _FakeApi({this.response, this.error});
+  _FakeApi({this.response, this.detailsResponse, this.error});
 
   final BboxResponse? response;
+  final PointDetailsResponse? detailsResponse;
   final Object? error;
   Set<int>? requestedTypeIds;
 
@@ -99,9 +130,26 @@ class _FakeApi implements RefugesInfoApi {
     }
     return response!;
   }
+
+  @override
+  Future<PointDetailsResponse> fetchPointDetails(int id) async {
+    final error = this.error;
+    if (error != null) {
+      throw error;
+    }
+    return detailsResponse!;
+  }
 }
 
-Future<BboxResponse> _loadFixture() async {
+Future<BboxResponse> _loadBboxFixture() async {
   final source = await File('test/fixtures/bbox_simple.json').readAsString();
   return BboxResponse.fromJson(jsonDecode(source) as Map<String, Object?>);
+}
+
+Future<PointDetailsResponse> _loadDetailsFixture() async {
+  final source = await File('test/fixtures/point_complete_cabin.json')
+      .readAsString();
+  return PointDetailsResponse.fromJson(
+    jsonDecode(source) as Map<String, Object?>,
+  );
 }

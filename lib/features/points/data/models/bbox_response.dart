@@ -86,7 +86,10 @@ class RefugesInfoPoint {
           },
           'coord': {'alt': Object? altitude},
           'etat': {'valeur': String state},
-          'places': {'valeur': Object? sleepingPlaces},
+          'places': {
+            'nom': String sleepingPlacesLabel,
+            'valeur': Object? sleepingPlaces,
+          },
           'lien': String website,
         },
       } =>
@@ -98,10 +101,9 @@ class RefugesInfoPoint {
           altitude: _nullableInt(altitude, field: 'altitude'),
           type: RefugesInfoPointType(id: typeId, name: typeName, icon: icon),
           state: state,
-          sleepingPlaces: _nullableInt(
-            sleepingPlaces,
-            field: 'sleeping places',
-          ),
+          sleepingPlaces: sleepingPlacesLabel.trim().isEmpty
+              ? null
+              : _nullableInt(sleepingPlaces, field: 'sleeping places'),
           website: _parseWebsite(website),
         ),
       _ => throw const FormatException('Invalid bbox point.'),

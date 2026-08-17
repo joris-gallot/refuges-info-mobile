@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:refuges_info_mobile/features/points/data/models/bbox_response.dart';
+import 'package:refuges_info_mobile/features/points/data/models/point_details_response.dart';
 import 'package:refuges_info_mobile/features/points/domain/models/geographic_bounds.dart';
 
 abstract interface class RefugesInfoApi {
@@ -10,6 +11,8 @@ abstract interface class RefugesInfoApi {
     Set<int> typeIds = const {},
     int limit = 250,
   });
+
+  Future<PointDetailsResponse> fetchPointDetails(int id);
 }
 
 class RefugesInfoApiClient implements RefugesInfoApi {
@@ -47,6 +50,29 @@ class RefugesInfoApiClient implements RefugesInfoApi {
             'format_texte': 'texte',
           },
         );
+    return BboxResponse.fromJson(await _getJson(uri));
+  }
+
+  @override
+  Future<PointDetailsResponse> fetchPointDetails(int id) async {
+    if (id < 1) {
+      throw RangeError.range(id, 1, null, 'id');
+    }
+
+    final uri = baseUri
+        .resolve('point')
+        .replace(
+          queryParameters: {
+            'id': '$id',
+            'detail': 'complet',
+            'format': 'geojson',
+            'format_texte': 'texte',
+          },
+        );
+    return PointDetailsResponse.fromJson(await _getJson(uri));
+  }
+
+  Future<Map<String, Object?>> _getJson(Uri uri) async {
     final response = await _httpClient
         .get(uri, headers: const {'Accept': 'application/json'})
         .timeout(requestTimeout);
@@ -58,10 +84,9 @@ class RefugesInfoApiClient implements RefugesInfoApi {
     final body = utf8.decode(response.bodyBytes);
     final json = jsonDecode(body);
     if (json is! Map<String, Object?>) {
-      throw const FormatException('Invalid bbox response.');
+      throw const FormatException('Invalid API response.');
     }
-
-    return BboxResponse.fromJson(json);
+    return json;
   }
 }
 

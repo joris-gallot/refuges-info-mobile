@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:refuges_info_mobile/features/points/domain/models/geographic_bounds.dart';
+import 'package:refuges_info_mobile/features/points/domain/models/point_details.dart';
 import 'package:refuges_info_mobile/features/points/domain/models/point_of_interest.dart';
 import 'package:refuges_info_mobile/features/points/domain/repositories/points_repository.dart';
 import 'package:refuges_info_mobile/features/points/presentation/view_models/points_view_model.dart';
@@ -27,6 +28,24 @@ void main() {
       find.text('Données Refuges.info sous licence CC BY-SA 2.0'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('opens point details from the list', (tester) async {
+    final repository = _FakeRepository(
+      (_) async => [_point],
+      details: _details,
+    );
+    final viewModel = PointsViewModel(repository);
+    await viewModel.load(_bounds);
+    await tester.pumpWidget(_testApp(viewModel, repository: repository));
+
+    await tester.tap(find.byTooltip('Afficher la liste'));
+    await tester.pump();
+    await tester.tap(find.text('Baraque Pagnot'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Localisation'), findsOneWidget);
+    expect(find.text('Accès par le sentier.'), findsOneWidget);
   });
 
   testWidgets('filters map and list points by selected types', (tester) async {
@@ -154,9 +173,12 @@ void main() {
   });
 }
 
-Widget _testApp(PointsViewModel viewModel) {
-  return ChangeNotifierProvider.value(
-    value: viewModel,
+Widget _testApp(PointsViewModel viewModel, {PointsRepository? repository}) {
+  return MultiProvider(
+    providers: [
+      ChangeNotifierProvider.value(value: viewModel),
+      if (repository != null) Provider.value(value: repository),
+    ],
     child: MaterialApp(
       home: PointsPage(mapBuilder: (_, _) => const SizedBox(key: Key('map'))),
     ),
@@ -187,6 +209,18 @@ final _point = PointOfInterest(
   ),
 );
 
+final _details = PointDetails(
+  point: _point,
+  coordinatePrecision: 'Coordonnées prises sur le terrain',
+  owner: null,
+  access: 'Accès par le sentier.',
+  remarks: null,
+  creatorName: 'Lauze',
+  createdAt: DateTime.utc(2020),
+  updatedAt: DateTime.utc(2025),
+  information: const [],
+);
+
 final _waterPoint = PointOfInterest(
   id: 9999,
   name: 'Source des tests',
@@ -200,10 +234,16 @@ final _waterPoint = PointOfInterest(
 );
 
 class _FakeRepository implements PointsRepository {
-  const _FakeRepository(this._getPoints, {this.onTypeIds});
+  const _FakeRepository(this._getPoints, {this.onTypeIds, this.details});
 
   final Future<List<PointOfInterest>> Function(GeographicBounds) _getPoints;
   final void Function(Set<int>)? onTypeIds;
+  final PointDetails? details;
+
+  @override
+  Future<PointDetails> getPointDetails(int id) async {
+    return details!;
+  }
 
   @override
   Future<List<PointOfInterest>> getPointsInBounds(
