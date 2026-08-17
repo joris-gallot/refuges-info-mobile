@@ -141,6 +141,58 @@ void main() {
       expect((state as PointsLoaded).points.single, same(_point));
     });
 
+    test('reloads current bounds with selected point types', () async {
+      final filterResponse = Completer<List<PointOfInterest>>();
+      Set<int> requestedTypeIds = {};
+      var requests = 0;
+      final viewModel = PointsViewModel(
+        _FakeRepository((_) {
+          requests++;
+          return requests == 1
+              ? Future.value([_point, _waterPoint])
+              : filterResponse.future;
+        }, onTypeIds: (typeIds) => requestedTypeIds = {...typeIds}),
+      );
+      await viewModel.load(_bounds);
+
+      final filtering = viewModel.setSelectedTypeIds({7});
+
+      final filteringState = viewModel.state as PointsLoaded;
+      expect(filteringState.points, [_point]);
+      expect(filteringState.isRefreshing, isTrue);
+      expect(requestedTypeIds, {7});
+      expect(viewModel.hasActiveTypeFilter, isTrue);
+
+      filterResponse.complete([_point]);
+      await filtering;
+
+      final filteredState = viewModel.state as PointsLoaded;
+      expect(filteredState.points, [_point]);
+      expect(filteredState.isRefreshing, isFalse);
+
+      await viewModel.setSelectedTypeIds({
+        for (final type in supportedPointTypes) type.id,
+      });
+
+      expect(requestedTypeIds, isEmpty);
+      expect(viewModel.hasActiveTypeFilter, isFalse);
+    });
+
+    test('does not reload when point type selection is unchanged', () async {
+      var requests = 0;
+      final viewModel = PointsViewModel(
+        _FakeRepository((_) async {
+          requests++;
+          return [_point];
+        }),
+      );
+      await viewModel.load(_bounds);
+
+      await viewModel.setSelectedTypeIds(viewModel.selectedTypeIds);
+
+      expect(requests, 1);
+    });
+
     test('retries the last requested bounds', () async {
       var requests = 0;
       final viewModel = PointsViewModel(
@@ -187,13 +239,30 @@ final _point = PointOfInterest(
   ),
 );
 
+final _waterPoint = PointOfInterest(
+  id: 9999,
+  name: 'Source des tests',
+  longitude: 5.83,
+  latitude: 45.09,
+  altitude: 1400,
+  type: const PointOfInterestType(id: 23, name: 'point d’eau'),
+  state: null,
+  sleepingPlaces: null,
+  website: Uri.parse('https://www.refuges.info/point/9999/'),
+);
+
 class _FakeRepository implements PointsRepository {
-  const _FakeRepository(this._getPoints);
+  const _FakeRepository(this._getPoints, {this.onTypeIds});
 
   final Future<List<PointOfInterest>> Function(GeographicBounds) _getPoints;
+  final void Function(Set<int>)? onTypeIds;
 
   @override
-  Future<List<PointOfInterest>> getPointsInBounds(GeographicBounds bounds) {
+  Future<List<PointOfInterest>> getPointsInBounds(
+    GeographicBounds bounds, {
+    Set<int> typeIds = const {},
+  }) {
+    onTypeIds?.call(typeIds);
     return _getPoints(bounds);
   }
 }

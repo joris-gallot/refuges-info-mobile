@@ -4,6 +4,7 @@ import 'package:refuges_info_mobile/features/points/domain/models/geographic_bou
 import 'package:refuges_info_mobile/features/points/domain/models/point_of_interest.dart';
 import 'package:refuges_info_mobile/features/points/presentation/view_models/points_view_model.dart';
 import 'package:refuges_info_mobile/features/points/presentation/views/points_map.dart';
+import 'package:refuges_info_mobile/features/points/presentation/widgets/point_type_filter_sheet.dart';
 
 typedef PointsMapBuilder = Widget Function(
   List<PointOfInterest> points,
@@ -31,12 +32,25 @@ class _PointsPageState extends State<PointsPage> {
       appBar: AppBar(
         title: const Text('Refuges Info Mobile'),
         actions: [
-          if (hasPoints)
+          if (hasPoints) ...[
+            IconButton(
+              tooltip: 'Filtrer les types de points',
+              onPressed: () => _showTypeFilters(viewModel),
+              icon: Badge(
+                isLabelVisible: viewModel.hasActiveTypeFilter,
+                child: Icon(
+                  viewModel.hasActiveTypeFilter
+                      ? Icons.filter_alt
+                      : Icons.filter_alt_outlined,
+                ),
+              ),
+            ),
             IconButton(
               tooltip: _showMap ? 'Afficher la liste' : 'Afficher la carte',
               onPressed: () => setState(() => _showMap = !_showMap),
               icon: Icon(_showMap ? Icons.list : Icons.map_outlined),
             ),
+          ],
         ],
       ),
       body: SafeArea(
@@ -81,6 +95,27 @@ class _PointsPageState extends State<PointsPage> {
         },
       ),
     );
+  }
+
+  Future<void> _showTypeFilters(PointsViewModel viewModel) async {
+    final selectedTypeIds = await showModalBottomSheet<Set<int>>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (sheetContext) => FractionallySizedBox(
+        heightFactor: 0.65,
+        child: PointTypeFilterSheet(
+          types: supportedPointTypes,
+          selectedTypeIds: viewModel.selectedTypeIds,
+          onApply: (selection) => Navigator.pop(sheetContext, selection),
+        ),
+      ),
+    );
+    if (!mounted || selectedTypeIds == null) {
+      return;
+    }
+    await viewModel.setSelectedTypeIds(selectedTypeIds);
   }
 }
 

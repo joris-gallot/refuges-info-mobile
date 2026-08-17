@@ -29,6 +29,48 @@ void main() {
     );
   });
 
+  testWidgets('filters map and list points by selected types', (tester) async {
+    Set<int> requestedTypeIds = {};
+    final viewModel = PointsViewModel(
+      _FakeRepository(
+        (_) async =>
+            requestedTypeIds.isEmpty ? [_point, _waterPoint] : [_point],
+        onTypeIds: (typeIds) => requestedTypeIds = {...typeIds},
+      ),
+    );
+    await viewModel.load(_bounds);
+    await tester.pumpWidget(_testApp(viewModel));
+
+    await tester.tap(find.byTooltip('Filtrer les types de points'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Types de points'), findsOneWidget);
+    expect(find.byType(FilterChip), findsNWidgets(supportedPointTypes.length));
+
+    await tester.tap(find.text('Tout désélectionner'));
+    await tester.pump();
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Appliquer'))
+          .onPressed,
+      isNull,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('point-type-7')));
+    await tester.pump();
+    await tester.tap(find.text('Appliquer'));
+    await tester.pumpAndSettle();
+
+    expect(requestedTypeIds, {7});
+    expect(find.byIcon(Icons.filter_alt), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Afficher la liste'));
+    await tester.pump();
+
+    expect(find.text('Baraque Pagnot'), findsOneWidget);
+    expect(find.text('Source des tests'), findsNothing);
+  });
+
   testWidgets('keeps the map visible while refreshing', (tester) async {
     final refreshResponse = Completer<List<PointOfInterest>>();
     var requests = 0;
@@ -145,13 +187,30 @@ final _point = PointOfInterest(
   ),
 );
 
+final _waterPoint = PointOfInterest(
+  id: 9999,
+  name: 'Source des tests',
+  longitude: 5.83,
+  latitude: 45.09,
+  altitude: 1400,
+  type: const PointOfInterestType(id: 23, name: 'point d’eau'),
+  state: null,
+  sleepingPlaces: null,
+  website: Uri.parse('https://www.refuges.info/point/9999/'),
+);
+
 class _FakeRepository implements PointsRepository {
-  const _FakeRepository(this._getPoints);
+  const _FakeRepository(this._getPoints, {this.onTypeIds});
 
   final Future<List<PointOfInterest>> Function(GeographicBounds) _getPoints;
+  final void Function(Set<int>)? onTypeIds;
 
   @override
-  Future<List<PointOfInterest>> getPointsInBounds(GeographicBounds bounds) {
+  Future<List<PointOfInterest>> getPointsInBounds(
+    GeographicBounds bounds, {
+    Set<int> typeIds = const {},
+  }) {
+    onTypeIds?.call(typeIds);
     return _getPoints(bounds);
   }
 }

@@ -2,7 +2,10 @@ import 'package:refuges_info_mobile/features/points/domain/models/geographic_bou
 import 'package:refuges_info_mobile/features/points/domain/models/point_of_interest.dart';
 
 abstract interface class PointsRepository {
-  Future<List<PointOfInterest>> getPointsInBounds(GeographicBounds bounds);
+  Future<List<PointOfInterest>> getPointsInBounds(
+    GeographicBounds bounds, {
+    Set<int> typeIds = const {},
+  });
 }
 
 sealed class PointsRepositoryException implements Exception {

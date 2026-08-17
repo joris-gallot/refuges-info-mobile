@@ -8,8 +8,16 @@ class PointsViewModel extends ChangeNotifier {
 
   final PointsRepository _repository;
 
+  static final Set<int> _allTypeIds = Set.unmodifiable(
+    supportedPointTypes.map((type) => type.id),
+  );
+
   PointsState _state = const PointsInitial();
   PointsState get state => _state;
+
+  Set<int> _selectedTypeIds = _allTypeIds;
+  Set<int> get selectedTypeIds => _selectedTypeIds;
+  bool get hasActiveTypeFilter => !setEquals(_selectedTypeIds, _allTypeIds);
 
   GeographicBounds? _lastBounds;
   var _requestId = 0;
@@ -34,7 +42,10 @@ class PointsViewModel extends ChangeNotifier {
     );
 
     try {
-      final points = await _repository.getPointsInBounds(bounds);
+      final points = await _repository.getPointsInBounds(
+        bounds,
+        typeIds: hasActiveTypeFilter ? _selectedTypeIds : const {},
+      );
       if (_isCurrent(requestId)) {
         _setState(
           points.isEmpty && previousPoints == null
@@ -58,6 +69,36 @@ class PointsViewModel extends ChangeNotifier {
           initialFailure: const PointsFailure(),
         );
       }
+    }
+  }
+
+  Future<void> setSelectedTypeIds(Set<int> typeIds) async {
+    if (typeIds.isEmpty || !_allTypeIds.containsAll(typeIds)) {
+      throw ArgumentError.value(typeIds, 'typeIds');
+    }
+    if (setEquals(typeIds, _selectedTypeIds)) {
+      return;
+    }
+
+    _selectedTypeIds = Set.unmodifiable(typeIds);
+    final currentPoints = switch (_state) {
+      PointsLoaded(:final points) => points,
+      _ => null,
+    };
+    if (currentPoints != null) {
+      _setState(
+        PointsLoaded(
+          points: currentPoints
+              .where((point) => _selectedTypeIds.contains(point.type.id))
+              .toList(),
+          isRefreshing: _lastBounds != null,
+        ),
+      );
+    }
+
+    final bounds = _lastBounds;
+    if (bounds != null) {
+      await load(bounds, force: true);
     }
   }
 

@@ -28,6 +28,15 @@ void main() {
       expect(() => points.add(points.first), throwsUnsupportedError);
     });
 
+    test('forwards selected point types to the API', () async {
+      final api = _FakeApi(response: await _loadFixture());
+      final repository = RemotePointsRepository(api);
+
+      await repository.getPointsInBounds(_bounds, typeIds: {7, 10});
+
+      expect(api.requestedTypeIds, {7, 10});
+    });
+
     test('maps client failures to a connection exception', () async {
       final repository = RemotePointsRepository(
         _FakeApi(error: http.ClientException('Offline')),
@@ -75,12 +84,15 @@ class _FakeApi implements RefugesInfoApi {
 
   final BboxResponse? response;
   final Object? error;
+  Set<int>? requestedTypeIds;
 
   @override
   Future<BboxResponse> fetchPointsInBounds({
     required GeographicBounds bounds,
+    Set<int> typeIds = const {},
     int limit = 250,
   }) async {
+    requestedTypeIds = typeIds;
     final error = this.error;
     if (error != null) {
       throw error;

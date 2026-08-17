@@ -49,6 +49,26 @@ void main() {
       expect(response.points.last.name, 'Cabane privée de Brondelière');
     });
 
+    test('sends selected point types in stable order', () async {
+      final fixture = await File('test/fixtures/bbox_simple.json')
+          .readAsString();
+      late http.Request capturedRequest;
+      final client = RefugesInfoApiClient(
+        MockClient((request) async {
+          capturedRequest = request;
+          return http.Response(
+            fixture,
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        }),
+      );
+
+      await client.fetchPointsInBounds(bounds: _bounds(), typeIds: {23, 7});
+
+      expect(capturedRequest.url.queryParameters['type_points'], '7,23');
+    });
+
     test('throws an API exception for a non-success status', () async {
       final client = RefugesInfoApiClient(
         MockClient((_) async => http.Response('Unavailable', 503)),

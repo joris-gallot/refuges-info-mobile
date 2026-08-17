@@ -14,10 +14,14 @@ class RemotePointsRepository implements PointsRepository {
 
   @override
   Future<List<PointOfInterest>> getPointsInBounds(
-    GeographicBounds bounds,
-  ) async {
+    GeographicBounds bounds, {
+    Set<int> typeIds = const {},
+  }) async {
     try {
-      final response = await _api.fetchPointsInBounds(bounds: bounds);
+      final response = await _api.fetchPointsInBounds(
+        bounds: bounds,
+        typeIds: typeIds,
+      );
       return List.unmodifiable(response.points.map(_toDomainModel));
     } on http.ClientException catch (_) {
       throw const PointsConnectionException();

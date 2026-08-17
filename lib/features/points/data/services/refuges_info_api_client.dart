@@ -7,6 +7,7 @@ import 'package:refuges_info_mobile/features/points/domain/models/geographic_bou
 abstract interface class RefugesInfoApi {
   Future<BboxResponse> fetchPointsInBounds({
     required GeographicBounds bounds,
+    Set<int> typeIds = const {},
     int limit = 250,
   });
 }
@@ -25,17 +26,21 @@ class RefugesInfoApiClient implements RefugesInfoApi {
   @override
   Future<BboxResponse> fetchPointsInBounds({
     required GeographicBounds bounds,
+    Set<int> typeIds = const {},
     int limit = 250,
   }) async {
     if (limit < 1 || limit > 250) {
       throw RangeError.range(limit, 1, 250, 'limit');
     }
 
+    final sortedTypeIds = typeIds.toList()..sort();
     final uri = baseUri
         .resolve('bbox')
         .replace(
           queryParameters: {
             'bbox': bounds.toApiValue(),
+            if (sortedTypeIds.isNotEmpty)
+              'type_points': sortedTypeIds.join(','),
             'nb_points': '$limit',
             'detail': 'simple',
             'format': 'geojson',
